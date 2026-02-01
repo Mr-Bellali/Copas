@@ -12,12 +12,20 @@ public class GamePanel extends JPanel implements Runnable {
     final int screenWidth = tileSize * maxScreenCol; // 768 pixels
     final int screenHeight = tileSize * maxScreenRow; // 576 pixels
 
+    KeyHandler keyHandler = new KeyHandler();
     Thread gameThread;
+
+//    Set player's default position
+    int playerX = 100;
+    int playerY = 100;
+    int playerSpeed = 4;
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
         this.setBackground(Color.black);
         this.setDoubleBuffered(true);
+        this.addKeyListener(keyHandler);
+        this.setFocusable(true);
     }
 
     public void startGameThread() {
@@ -39,7 +47,41 @@ public class GamePanel extends JPanel implements Runnable {
 
     //    Methode to update the frame
     public void update() {
+        if(keyHandler.upPressed){
+            playerY -= playerSpeed;
+            try {
+                Thread.sleep(playerSpeed);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        if(keyHandler.downPressed){
+            playerY += playerSpeed;
+            try {
+                Thread.sleep(playerSpeed);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
 
+        }
+        if(keyHandler.leftPressed){
+            playerX -= playerSpeed;
+            try {
+                Thread.sleep(playerSpeed);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+        if(keyHandler.rightPressed){
+            playerX += playerSpeed;
+            try {
+                Thread.sleep(playerSpeed);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
     }
 
     //    Methode to draw
@@ -48,7 +90,7 @@ public class GamePanel extends JPanel implements Runnable {
         Graphics2D g2 = (Graphics2D)g;
 
         g2.setColor(Color.white);
-        g2.fillRect(100, 100, tileSize , tileSize);
+        g2.fillRect(playerX, playerY, tileSize , tileSize);
         g2.dispose();
     }
 }
