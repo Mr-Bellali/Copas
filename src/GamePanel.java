@@ -37,32 +37,56 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     @Override
+//    public void run() {
+//        double drawInterval = 1000000000 / FPS; // 0.0166666 seconds
+//        double nextDrawTime = System.nanoTime() + drawInterval;
+//
+//        while (gameThread != null) {
+////          1 Update
+//            update();
+//
+////          2 Draw the screen with updated information
+//            repaint();
+//
+//            try {
+//                double remainingTime = (nextDrawTime - System.nanoTime()) / 1000000;
+//
+//                if(remainingTime < 0){
+//                    remainingTime = 0;
+//                }
+//
+//                Thread.sleep((long) remainingTime);
+//
+//                nextDrawTime += drawInterval;
+//            } catch (InterruptedException e) {
+//                throw new RuntimeException(e);
+//            }
+//        }
+//    }
+
     public void run() {
         double drawInterval = 1000000000 / FPS; // 0.0166666 seconds
-        double nextDrawTime = System.nanoTime() + drawInterval;
+        double delta = 0;
+        long lastTime = System.nanoTime();
+        long currentTime;
 
         while (gameThread != null) {
-//          1 Update
-            update();
+            currentTime = System.nanoTime();
+            delta += (currentTime - lastTime) / drawInterval;
 
-//          2 Draw the screen with updated information
-            repaint();
+            lastTime = currentTime;
 
-            try {
-                double remainingTime = (nextDrawTime - System.nanoTime()) / 1000000;
+            if (delta >= 1) {
+                // 1 Update
+                update();
 
-                if(remainingTime < 0){
-                    remainingTime = 0;
-                }
+                // 2 Draw the screen with updated information
+                repaint();
 
-                Thread.sleep((long) remainingTime);
-
-                nextDrawTime += drawInterval;
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                delta--;
             }
-        }
 
+        }
     }
 
     //    Methode to update the frame
