@@ -1,3 +1,5 @@
+package main;
+
 public class Card {
     static int id = 0;
     private String type;
