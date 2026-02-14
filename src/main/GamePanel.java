@@ -7,14 +7,14 @@ import java.awt.*;
 
 public class GamePanel extends JPanel implements Runnable {
     //    Screen settings
-    final int originalTilesSize = 16; // 16x16 tile
-    final int scale = 3;
+    final int originalTilesSize = 64; // 16x16 tile
+    final int scale = 2;
 
     public int tileSize = originalTilesSize * scale; // 48x48 tile
     final int maxScreenCol = 16;
     final int maxScreenRow = 12;
-    final int screenWidth = tileSize * maxScreenCol; // 768 pixels
-    final int screenHeight = tileSize * maxScreenRow; // 576 pixels
+    final int screenWidth = (tileSize * maxScreenCol)/2; // 768 pixels
+    final int screenHeight = (tileSize * maxScreenRow)/2; // 576 pixels
 
     //    Game's frame rate
     int FPS = 60;
@@ -22,6 +22,7 @@ public class GamePanel extends JPanel implements Runnable {
     KeyHandler keyHandler = new KeyHandler();
     Thread gameThread;
     Player player = new Player(this, keyHandler);
+    Card card = new Card("joker", 0, this, keyHandler);
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
@@ -108,6 +109,7 @@ public class GamePanel extends JPanel implements Runnable {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
         player.draw(g2);
+        card.draw(g2);
         g2.dispose();
     }
 }
