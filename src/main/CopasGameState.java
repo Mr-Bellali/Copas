@@ -11,6 +11,8 @@ public class CopasGameState {
     private static final String[] PLAYER_NAMES = {"You", "AI 1", "AI 2", "AI 3"};
     private static final String[] SUITS = {"Basto", "Copa", "Espada", "Oro"};
 
+    public record AiTurnResult(int playerIndex, Card cardPlayed, boolean roundOver) {}
+
     private Deck drawPile;
     private final List<Card> discardPile = new ArrayList<>();
     private final List<List<Card>> playerHands = new ArrayList<>();
@@ -73,6 +75,10 @@ public class CopasGameState {
         return !roundOver && currentPlayerIndex == HUMAN_PLAYER_INDEX && !finishedPlayers[HUMAN_PLAYER_INDEX];
     }
 
+    public boolean isAiTurn() {
+        return !roundOver && currentPlayerIndex != HUMAN_PLAYER_INDEX;
+    }
+
     public boolean isHumanCardPlayable(int handIndex) {
         List<Card> humanHand = playerHands.get(HUMAN_PLAYER_INDEX);
         if (handIndex < 0 || handIndex >= humanHand.size()) {
@@ -129,9 +135,7 @@ public class CopasGameState {
         }
 
         playCard(HUMAN_PLAYER_INDEX, handIndex, normalizeChosenSuit(card, chosenSuit));
-        if (!roundOver) {
-            runAiTurns();
-        }
+        // AI turns are now driven by GamePanel with animation delays — no runAiTurns() here
         return true;
     }
 
@@ -162,60 +166,53 @@ public class CopasGameState {
             statusMessage = "You drew " + drawnCard.getDisplayName() + ". You may play it or another valid card.";
         } else {
             statusMessage = "You drew " + drawnCard.getDisplayName() + " and it cannot be played. Turn passes.";
-            endTurnAfterAction(drawnCard.getDisplayName() + " was not playable.");
-            if (!roundOver) {
-                runAiTurns();
-            }
+            currentPlayerIndex = getNextActivePlayer(HUMAN_PLAYER_INDEX);
+            // GamePanel will detect isAiTurn() and schedule the animated AI turn
         }
     }
 
-    private void runAiTurns() {
-        while (!roundOver && currentPlayerIndex != HUMAN_PLAYER_INDEX) {
-            int aiIndex = currentPlayerIndex;
-            if (finishedPlayers[aiIndex]) {
-                currentPlayerIndex = getNextActivePlayer(aiIndex);
-                continue;
-            }
+    /** Executes exactly one AI player's turn and returns what happened. GamePanel calls this
+     *  after its delay timer fires so each AI move is shown with a delay and animation. */
+    public AiTurnResult stepAiTurn() {
+        if (!isAiTurn()) return null;
 
-            takeAiTurn(aiIndex);
+        int aiIndex = currentPlayerIndex;
+
+        if (finishedPlayers[aiIndex]) {
+            currentPlayerIndex = getNextActivePlayer(aiIndex);
+            if (!roundOver && currentPlayerIndex == HUMAN_PLAYER_INDEX) humanHasDrawnThisTurn = false;
+            return new AiTurnResult(aiIndex, null, roundOver);
         }
 
-        if (!roundOver) {
-            humanHasDrawnThisTurn = false;
-            if (!hasPlayableCard()) {
-                statusMessage = statusMessage + " Your turn: no playable card, draw from the pile.";
-            } else if (!statusMessage.contains("Your turn")) {
-                statusMessage = statusMessage + " Your turn.";
-            }
-        }
-    }
-
-    private void takeAiTurn(int aiIndex) {
         List<Card> aiHand = playerHands.get(aiIndex);
         int playableIndex = findPlayableCardIndex(aiHand);
+        Card cardPlayed = null;
 
         if (playableIndex >= 0) {
             Card card = aiHand.get(playableIndex);
             String chosenSuit = card.isSuitChange() ? chooseSuitForAi(aiHand, playableIndex) : null;
+            cardPlayed = card;
             playCard(aiIndex, playableIndex, chosenSuit);
-            return;
-        }
-
-        Card drawnCard = drawFromPile();
-        if (drawnCard == null) {
-            statusMessage = getPlayerName(aiIndex) + " could not draw. ";
-            currentPlayerIndex = getNextActivePlayer(aiIndex);
-            return;
-        }
-
-        aiHand.add(drawnCard);
-        if (canPlay(drawnCard)) {
-            String chosenSuit = drawnCard.isSuitChange() ? chooseSuitForAi(aiHand, aiHand.size() - 1) : null;
-            playCard(aiIndex, aiHand.size() - 1, chosenSuit);
         } else {
-            statusMessage = getPlayerName(aiIndex) + " drew a card and passed.";
-            currentPlayerIndex = getNextActivePlayer(aiIndex);
+            Card drawnCard = drawFromPile();
+            if (drawnCard != null) {
+                aiHand.add(drawnCard);
+                if (canPlay(drawnCard)) {
+                    String chosenSuit = drawnCard.isSuitChange() ? chooseSuitForAi(aiHand, aiHand.size() - 1) : null;
+                    cardPlayed = drawnCard;
+                    playCard(aiIndex, aiHand.size() - 1, chosenSuit);
+                } else {
+                    statusMessage = getPlayerName(aiIndex) + " drew a card and passed.";
+                    currentPlayerIndex = getNextActivePlayer(aiIndex);
+                }
+            } else {
+                statusMessage = getPlayerName(aiIndex) + " could not draw.";
+                currentPlayerIndex = getNextActivePlayer(aiIndex);
+            }
         }
+
+        if (!roundOver && currentPlayerIndex == HUMAN_PLAYER_INDEX) humanHasDrawnThisTurn = false;
+        return new AiTurnResult(aiIndex, cardPlayed, roundOver);
     }
 
     private void playCard(int playerIndex, int handIndex, String chosenSuit) {
@@ -274,11 +271,6 @@ public class CopasGameState {
         }
 
         currentPlayerIndex = getNextActivePlayer(playerIndex);
-    }
-
-    private void endTurnAfterAction(String detail) {
-        currentPlayerIndex = getNextActivePlayer(HUMAN_PLAYER_INDEX);
-        statusMessage = detail;
     }
 
     private void markPlayerFinished(int playerIndex, StringBuilder actionMessage) {
@@ -415,7 +407,3 @@ public class CopasGameState {
         return card.getType();
     }
 }
-
-
-
-
