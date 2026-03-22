@@ -96,11 +96,6 @@ public class GamePanel extends JPanel implements Runnable {
         int x = (screenWidth - cardWidth) / 2;
         int y = (screenHeight - cardHeight) / 2 - 36;
         gameState.getTopCard().drawFront(g2, x, y, cardWidth, cardHeight);
-
-        g2.setFont(smallHudFont);
-        g2.setColor(Color.WHITE);
-        g2.drawString("Active suit: " + gameState.getActiveSuit(), x - 8, y - 12);
-        g2.drawString("Top card: " + gameState.getTopCard().getDisplayName(), x - 8, y + cardHeight + 18);
     }
 
     private void drawPlayerHand(Graphics2D g2) {
@@ -135,13 +130,6 @@ public class GamePanel extends JPanel implements Runnable {
                 int y = baseY - (i * STACK_OFFSET);
                 Card.drawBackImage(g2, x, y, cardWidth, cardHeight);
             }
-
-            g2.setFont(smallHudFont);
-            g2.setColor(Color.WHITE);
-            g2.drawString("Draw pile: " + gameState.getDrawPileSize(), baseX - 18, baseY - 10);
-            if (gameState.canHumanDraw()) {
-                g2.drawString("Click to draw", baseX - 14, baseY + cardHeight + 18);
-            }
         }
     }
 
@@ -173,17 +161,6 @@ public class GamePanel extends JPanel implements Runnable {
             drawOpponentFanVerticalLeft(g2, centerX, centerY, visibleCards, opponentCardWidth, opponentCardHeight, playerIndex, cardCount);
         } else {
             drawOpponentFanVerticalRight(g2, centerX, centerY, visibleCards, opponentCardWidth, opponentCardHeight, playerIndex, cardCount);
-        }
-
-        g2.setFont(smallHudFont);
-        g2.setColor(Color.WHITE);
-        String playerLabel = gameState.getPlayerName(playerIndex) + " (" + cardCount + ")";
-        if (horizontal) {
-            g2.drawString(playerLabel, centerX - 36, centerY - 24);
-        } else if (isLeft) {
-            g2.drawString(playerLabel, centerX - 48, centerY - 40);
-        } else {
-            g2.drawString(playerLabel, centerX + 12, centerY - 40);
         }
     }
 
@@ -275,44 +252,9 @@ public class GamePanel extends JPanel implements Runnable {
         g2.setFont(hudFont);
         g2.setColor(Color.WHITE);
         g2.drawString("Current turn: " + gameState.getPlayerName(gameState.getCurrentPlayerIndex()), TABLE_MARGIN, 28);
-
-        g2.setFont(smallHudFont);
-        drawWrappedStatus(g2, gameState.getStatusMessage(), TABLE_MARGIN, 54, screenWidth - (TABLE_MARGIN * 2), 18);
-
-        int opponentsX = TABLE_MARGIN;
-        int opponentsY = 120;
-        for (int playerIndex = 1; playerIndex < 4; playerIndex++) {
-            String label = gameState.getPlayerName(playerIndex) + ": "
-                    + gameState.getPlayerCardCount(playerIndex)
-                    + (gameState.isPlayerFinished(playerIndex) ? " (finished)" : " cards");
-            g2.drawString(label, opponentsX, opponentsY + ((playerIndex - 1) * 20));
-        }
-
-        String humanLabel = "You: " + gameState.getPlayerCardCount(0)
-                + (gameState.isPlayerFinished(0) ? " (finished)" : " cards");
-        g2.drawString(humanLabel, TABLE_MARGIN, screenHeight - 16);
     }
 
     private void drawWrappedStatus(Graphics2D g2, String text, int x, int y, int maxWidth, int lineHeight) {
-        FontMetrics metrics = g2.getFontMetrics();
-        String[] words = text.split(" ");
-        StringBuilder line = new StringBuilder();
-        int lineY = y;
-
-        for (String word : words) {
-            String candidate = line.isEmpty() ? word : line + " " + word;
-            if (metrics.stringWidth(candidate) > maxWidth && !line.isEmpty()) {
-                g2.drawString(line.toString(), x, lineY);
-                line = new StringBuilder(word);
-                lineY += lineHeight;
-            } else {
-                line = new StringBuilder(candidate);
-            }
-        }
-
-        if (!line.isEmpty()) {
-            g2.drawString(line.toString(), x, lineY);
-        }
     }
 
     private List<CardPlacement> getPlayerHandPlacements() {
