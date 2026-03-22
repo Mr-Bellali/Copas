@@ -1,60 +1,70 @@
 package main;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 public class Card {
-    public BufferedImage frontView, backView;
-    static int id = 0;
-    private String type;
-    private int number;
-    public int x, y;
+    private static final Map<String, BufferedImage> FRONT_IMAGE_CACHE = new HashMap<>();
+    private static final BufferedImage BACK_IMAGE = loadImage("cards/cardBack.png");
 
-    GamePanel gp;
-    KeyHandler keyHandler;
+    private final String type;
+    private final int number;
+    private final BufferedImage frontView;
 
-    public Card(String type, int number, GamePanel gp, KeyHandler keyHandler) {
+    public Card(String type, int number) {
         this.type = type;
         this.number = number;
-
-        this.gp = gp;
-        this.keyHandler = keyHandler;
-        setDefaultValues();
-        getCardImage();
-        id++;
+        this.frontView = FRONT_IMAGE_CACHE.computeIfAbsent(buildFrontImagePath(type, number), Card::loadImage);
     }
 
-    public void displayInfo() {
-        IO.println("type: " + this.type);
-        IO.println("number: " + this.number);
+    public String getType() {
+        return type;
     }
 
-    public void setDefaultValues() {
-        x = 100;
-        y = 100;
+    public int getNumber() {
+        return number;
     }
 
-    // Function to get the card image
-    public void getCardImage() {
-        try {
-            frontView = ImageIO.read(getClass().getClassLoader().getResourceAsStream("cards/comodines1.png"));
-            backView = ImageIO.read(getClass().getClassLoader().getResourceAsStream("cards/cardBack.png"));
+    public void drawFront(Graphics2D g2, int x, int y, int width, int height) {
+        g2.drawImage(frontView, x, y, width, height, null);
+    }
+
+    public void drawBack(Graphics2D g2, int x, int y, int width, int height) {
+        drawBackImage(g2, x, y, width, height);
+    }
+
+    public static void drawBackImage(Graphics2D g2, int x, int y, int width, int height) {
+        g2.drawImage(BACK_IMAGE, x, y, width, height, null);
+    }
+
+    private static String buildFrontImagePath(String type, int number) {
+        String normalizedType = Objects.requireNonNull(type, "Card type cannot be null").trim();
+
+        return switch (normalizedType) {
+            case "Basto" -> "cards/Basto/basto" + number + ".png";
+            case "Copa" -> "cards/Copa/copa" + number + ".png";
+            case "Espada" -> "cards/Espada/espada" + number + ".png";
+            case "Oro" -> "cards/Oro/oro" + number + ".png";
+            default -> throw new IllegalArgumentException("Unknown card type: " + type);
+        };
+    }
+
+    private static BufferedImage loadImage(String resourcePath) {
+        try (InputStream inputStream = Card.class.getClassLoader().getResourceAsStream(resourcePath)) {
+            if (inputStream == null) {
+                throw new IllegalStateException("Missing resource: " + resourcePath);
+            }
+
+            return ImageIO.read(inputStream);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new IllegalStateException("Failed to load resource: " + resourcePath, e);
         }
-    }
-
-    public void draw(Graphics2D g2){
-        BufferedImage frontViewImage = null;
-        BufferedImage backViewImage = null;
-
-        frontViewImage = frontView;
-        backViewImage = backView;
-
-        g2.drawImage(frontViewImage, x, y, gp.tileSize, gp.tileSize, null);
-        g2.drawImage(backViewImage, x+x, y+y, gp.tileSize, gp.tileSize, null);
     }
 
 }
