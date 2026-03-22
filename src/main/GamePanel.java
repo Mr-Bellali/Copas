@@ -84,6 +84,9 @@ public class GamePanel extends JPanel implements Runnable {
         drawCenterCard(g2);
         drawPlayerHand(g2);
         drawDrawPile(g2);
+        drawOpponentHandTop(g2);
+        drawOpponentHandLeft(g2);
+        drawOpponentHandRight(g2);
         drawHud(g2);
 
         g2.dispose();
@@ -139,6 +142,132 @@ public class GamePanel extends JPanel implements Runnable {
             if (gameState.canHumanDraw()) {
                 g2.drawString("Click to draw", baseX - 14, baseY + cardHeight + 18);
             }
+        }
+    }
+
+    private void drawOpponentHandTop(Graphics2D g2) {
+        drawOpponentHand(g2, 1, screenWidth / 2, TABLE_MARGIN + 16, true, false);
+    }
+
+    private void drawOpponentHandLeft(Graphics2D g2) {
+        drawOpponentHand(g2, 2, TABLE_MARGIN + 16, screenHeight / 2, false, true);
+    }
+
+    private void drawOpponentHandRight(Graphics2D g2) {
+        drawOpponentHand(g2, 3, screenWidth - TABLE_MARGIN - 16, screenHeight / 2, false, false);
+    }
+
+    private void drawOpponentHand(Graphics2D g2, int playerIndex, int centerX, int centerY, boolean horizontal, boolean isLeft) {
+        int cardCount = gameState.getPlayerCardCount(playerIndex);
+        if (cardCount <= 0) {
+            return;
+        }
+
+        int visibleCards = Math.min(cardCount, 4);
+        int opponentCardWidth = cardWidth - 8;
+        int opponentCardHeight = (int) Math.round(opponentCardWidth * 1.45);
+
+        if (horizontal) {
+            drawOpponentFanHorizontal(g2, centerX, centerY, visibleCards, opponentCardWidth, opponentCardHeight, playerIndex, cardCount);
+        } else if (isLeft) {
+            drawOpponentFanVerticalLeft(g2, centerX, centerY, visibleCards, opponentCardWidth, opponentCardHeight, playerIndex, cardCount);
+        } else {
+            drawOpponentFanVerticalRight(g2, centerX, centerY, visibleCards, opponentCardWidth, opponentCardHeight, playerIndex, cardCount);
+        }
+
+        g2.setFont(smallHudFont);
+        g2.setColor(Color.WHITE);
+        String playerLabel = gameState.getPlayerName(playerIndex) + " (" + cardCount + ")";
+        if (horizontal) {
+            g2.drawString(playerLabel, centerX - 36, centerY - 24);
+        } else if (isLeft) {
+            g2.drawString(playerLabel, centerX - 48, centerY - 40);
+        } else {
+            g2.drawString(playerLabel, centerX + 12, centerY - 40);
+        }
+    }
+
+    private void drawOpponentFanHorizontal(Graphics2D g2, int centerX, int centerY, int visibleCards, int cardWidth, int cardHeight, int playerIndex, int totalCards) {
+        double fanRadius = 30.0;
+        double totalSpread = visibleCards == 1 ? 0 : 20.0;
+        double angleStep = visibleCards == 1 ? 0 : totalSpread / (visibleCards - 1);
+        double startAngle = -totalSpread / 2.0;
+
+        for (int i = 0; i < visibleCards; i++) {
+            double angleDegrees = startAngle + (angleStep * i);
+            double angleRadians = Math.toRadians(angleDegrees);
+
+            double cardCenterX = centerX + (Math.sin(angleRadians) * fanRadius);
+            double cardTopY = centerY - (Math.cos(angleRadians) * fanRadius) - (cardHeight / 2.0);
+            int x = (int) Math.round(Math.max(TABLE_MARGIN, Math.min(screenWidth - TABLE_MARGIN - cardWidth, cardCenterX - (cardWidth / 2.0))));
+            int y = (int) Math.round(Math.max(TABLE_MARGIN + 32, cardTopY));
+
+            Graphics2D cardGraphics = (Graphics2D) g2.create();
+            cardGraphics.rotate(angleRadians, x + (cardWidth / 2.0), y + (cardHeight * 0.5));
+            Card.drawBackImage(cardGraphics, x, y, cardWidth, cardHeight);
+            cardGraphics.dispose();
+        }
+
+        if (visibleCards < totalCards) {
+            g2.setFont(smallHudFont);
+            g2.setColor(Color.WHITE);
+            g2.drawString("+" + (totalCards - visibleCards), centerX - 12, centerY + 40);
+        }
+    }
+
+    private void drawOpponentFanVerticalLeft(Graphics2D g2, int centerX, int centerY, int visibleCards, int cardWidth, int cardHeight, int playerIndex, int totalCards) {
+        double fanRadius = 30.0;
+        double totalSpread = visibleCards == 1 ? 0 : 20.0;
+        double angleStep = visibleCards == 1 ? 0 : totalSpread / (visibleCards - 1);
+        double startAngle = 180.0 - (totalSpread / 2.0);
+
+        for (int i = 0; i < visibleCards; i++) {
+            double angleDegrees = startAngle + (angleStep * i);
+            double angleRadians = Math.toRadians(angleDegrees);
+
+            double cardCenterX = centerX + (Math.cos(angleRadians) * fanRadius);
+            double cardCenterY = centerY + (Math.sin(angleRadians) * fanRadius);
+            int x = (int) Math.round(Math.max(TABLE_MARGIN, cardCenterX - (cardWidth / 2.0)));
+            int y = (int) Math.round(Math.max(TABLE_MARGIN, Math.min(screenHeight - TABLE_MARGIN - cardHeight, cardCenterY - (cardHeight / 2.0))));
+
+            Graphics2D cardGraphics = (Graphics2D) g2.create();
+            cardGraphics.rotate(angleRadians, x + (cardWidth / 2.0), y + (cardHeight / 2.0));
+            Card.drawBackImage(cardGraphics, x, y, cardWidth, cardHeight);
+            cardGraphics.dispose();
+        }
+
+        if (visibleCards < totalCards) {
+            g2.setFont(smallHudFont);
+            g2.setColor(Color.WHITE);
+            g2.drawString("+" + (totalCards - visibleCards), centerX - 50, centerY + 24);
+        }
+    }
+
+    private void drawOpponentFanVerticalRight(Graphics2D g2, int centerX, int centerY, int visibleCards, int cardWidth, int cardHeight, int playerIndex, int totalCards) {
+        double fanRadius = 30.0;
+        double totalSpread = visibleCards == 1 ? 0 : 20.0;
+        double angleStep = visibleCards == 1 ? 0 : totalSpread / (visibleCards - 1);
+        double startAngle = 0.0 - (totalSpread / 2.0);
+
+        for (int i = 0; i < visibleCards; i++) {
+            double angleDegrees = startAngle + (angleStep * i);
+            double angleRadians = Math.toRadians(angleDegrees);
+
+            double cardCenterX = centerX + (Math.cos(angleRadians) * fanRadius);
+            double cardCenterY = centerY + (Math.sin(angleRadians) * fanRadius);
+            int x = (int) Math.round(Math.min(screenWidth - TABLE_MARGIN - cardWidth, cardCenterX - (cardWidth / 2.0)));
+            int y = (int) Math.round(Math.max(TABLE_MARGIN, Math.min(screenHeight - TABLE_MARGIN - cardHeight, cardCenterY - (cardHeight / 2.0))));
+
+            Graphics2D cardGraphics = (Graphics2D) g2.create();
+            cardGraphics.rotate(angleRadians, x + (cardWidth / 2.0), y + (cardHeight / 2.0));
+            Card.drawBackImage(cardGraphics, x, y, cardWidth, cardHeight);
+            cardGraphics.dispose();
+        }
+
+        if (visibleCards < totalCards) {
+            g2.setFont(smallHudFont);
+            g2.setColor(Color.WHITE);
+            g2.drawString("+" + (totalCards - visibleCards), centerX + 32, centerY + 24);
         }
     }
 
