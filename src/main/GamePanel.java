@@ -23,6 +23,7 @@ public class GamePanel extends JPanel implements Runnable {
     private static final int TABLE_MARGIN = 24;
     private static final int STACK_OFFSET = 4;
     private static final int MAX_VISIBLE_STACK = 6;
+    private static final double HAND_FAN_SPREAD_DEGREES = 36.0;
     private final int cardWidth = tileSize - 24;
     private final int cardHeight = (int) Math.round(cardWidth * 1.45);
 
@@ -103,14 +104,26 @@ public class GamePanel extends JPanel implements Runnable {
             return;
         }
 
-        int spacing = cardWidth - 30;
-        int totalWidth = cardWidth + ((playerHand.size() - 1) * spacing);
-        int startX = (screenWidth - totalWidth) / 2;
-        int y = screenHeight - cardHeight - TABLE_MARGIN;
+        double fanRadius = cardHeight + 95.0;
+        double pivotX = screenWidth / 2.0;
+        double pivotY = screenHeight + 220.0;
+        double totalSpread = playerHand.size() == 1 ? 0 : HAND_FAN_SPREAD_DEGREES;
+        double angleStep = playerHand.size() == 1 ? 0 : totalSpread / (playerHand.size() - 1);
+        double startAngle = -totalSpread / 2.0;
 
         for (int i = 0; i < playerHand.size(); i++) {
-            int x = startX + (i * spacing);
-            playerHand.get(i).drawFront(g2, x, y, cardWidth, cardHeight);
+            double angleDegrees = startAngle + (angleStep * i);
+            double angleRadians = Math.toRadians(angleDegrees);
+
+            double cardCenterX = pivotX + (Math.sin(angleRadians) * fanRadius);
+            double cardTopY = pivotY - (Math.cos(angleRadians) * fanRadius) - cardHeight;
+            int x = (int) Math.round(cardCenterX - (cardWidth / 2.0));
+            int y = (int) Math.round(cardTopY);
+
+            Graphics2D cardGraphics = (Graphics2D) g2.create();
+            cardGraphics.rotate(angleRadians, x + (cardWidth / 2.0), y + (cardHeight * 0.92));
+            playerHand.get(i).drawFront(cardGraphics, x, y, cardWidth, cardHeight);
+            cardGraphics.dispose();
         }
     }
 
