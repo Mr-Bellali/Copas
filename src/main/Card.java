@@ -31,6 +31,34 @@ public class Card {
         return number;
     }
 
+    public boolean matches(Card topCard, String activeSuit) {
+        return number == topCard.number || type.equals(activeSuit);
+    }
+
+    public boolean isDrawTwo() {
+        return number == 2;
+    }
+
+    public boolean isSkip() {
+        return number == 1 && !isGoldenOne();
+    }
+
+    public boolean isSuitChange() {
+        return number == 7;
+    }
+
+    public boolean isGoldenOne() {
+        return number == 1 && "Oro".equals(type);
+    }
+
+    public boolean isSpecialCard() {
+        return isDrawTwo() || isSkip() || isSuitChange() || isGoldenOne();
+    }
+
+    public String getDisplayName() {
+        return type + " " + number;
+    }
+
     public void drawFront(Graphics2D g2, int x, int y, int width, int height) {
         g2.drawImage(frontView, x, y, width, height, null);
     }
