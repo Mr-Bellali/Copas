@@ -33,8 +33,8 @@ public class GamePanel extends JPanel implements Runnable {
 
     private final int  cardWidth  = tileSize - 24;
     private final int  cardHeight = (int) Math.round(cardWidth * 1.45);
-    private final Font hudFont      = new Font("SansSerif", Font.BOLD,  16);
-    private final Font smallHudFont = new Font("SansSerif", Font.PLAIN, 14);
+    private final Font hudFont      = UiFonts.bold(16f);
+    private final Font smallHudFont = UiFonts.plain(14f);
 
     private final CopasGameState gameState;
     private volatile CardAnimation activeAnimation;
