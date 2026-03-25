@@ -1,0 +1,59 @@
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Compile sources
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path build\classes | Out-Null
+          Get-ChildItem -Path src -Filter *.java -Recurse |
+            ForEach-Object { $_.FullName } |
+            Set-Content build\sources.txt
+
+          javac --enable-preview --source 21 -d build\classes @build\sources.txt
+
+      - name: Package resources and JAR
+        shell: pwsh
+        run: |
+          Copy-Item -Path res\* -Destination build\classes -Recurse -Force
+          jar --create --file build\copas.jar --main-class Main -C build\classes .
+
+      - name: Build Windows installer EXE
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          jpackage `
+            --type exe `
+            --name Copas `
+            --input build `
+            --main-jar copas.jar `
+            --dest dist `
+            --java-options "--enable-preview" `
+            --win-dir-chooser `
+            --win-menu `
+            --win-shortcut
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Copas-Windows-EXE
+          path: dist\*.exe
+
