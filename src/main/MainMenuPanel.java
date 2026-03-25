@@ -3,7 +3,6 @@ package main;
 import javax.swing.JButton;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.border.Border;
@@ -29,7 +28,7 @@ public class MainMenuPanel extends JPanel {
     private static final int SCREEN_WIDTH = (TILE_SIZE * 16) / 2;
     private static final int SCREEN_HEIGHT = (TILE_SIZE * 12) / 2;
 
-    public MainMenuPanel(Runnable onPlayAgainstCpu) {
+    public MainMenuPanel(Runnable onPlayAgainstCpu, Runnable onLocalMultiplayer) {
         setPreferredSize(new Dimension(SCREEN_WIDTH, SCREEN_HEIGHT));
         setBackground(new Color(16, 94, 58));
         setLayout(new GridBagLayout());
@@ -51,12 +50,7 @@ public class MainMenuPanel extends JPanel {
         cpuButton.addActionListener(_ -> onPlayAgainstCpu.run());
 
         JButton localButton = buildMenuButton("Other players (local)");
-        localButton.addActionListener(_ -> JOptionPane.showMessageDialog(
-                this,
-                "Local multiplayer is coming later.",
-                "Coming soon",
-                JOptionPane.INFORMATION_MESSAGE
-        ));
+        localButton.addActionListener(_ -> onLocalMultiplayer.run());
 
         JPanel content = new JPanel(new GridBagLayout());
         content.setOpaque(false);

@@ -6,17 +6,23 @@ import java.util.List;
 
 public class CopasGameState {
     public static final int HUMAN_PLAYER_INDEX = 0;
-    private static final int PLAYER_COUNT = 4;
+    private static final String[] DEFAULT_PLAYER_NAMES = {"You", "AI 1", "AI 2", "AI 3"};
     private static final int STARTING_HAND_SIZE = 4;
-    private static final String[] PLAYER_NAMES = {"You", "AI 1", "AI 2", "AI 3"};
     private static final String[] SUITS = {"Basto", "Copa", "Espada", "Oro"};
 
     public record AiTurnResult(int playerIndex, Card cardPlayed, boolean roundOver) {}
+    public enum ActionType { PLAY_CARD, DRAW_CARD }
+    public record ActionEvent(ActionType type, int actorPlayerIndex, Card card,
+                              int affectedPlayerIndex, int affectedCardCount) {}
+    public record PlayerActionResult(boolean success, ActionEvent event, String errorMessage) {}
+
+    private final int playerCount;
+    private final String[] playerNames;
+    private final boolean[] finishedPlayers;
 
     private Deck drawPile;
     private final List<Card> discardPile = new ArrayList<>();
     private final List<List<Card>> playerHands = new ArrayList<>();
-    private final boolean[] finishedPlayers = new boolean[PLAYER_COUNT];
 
     private int currentPlayerIndex = HUMAN_PLAYER_INDEX;
     private String activeSuit;
@@ -25,6 +31,17 @@ public class CopasGameState {
     private boolean humanHasDrawnThisTurn;
 
     public CopasGameState() {
+        this(DEFAULT_PLAYER_NAMES);
+    }
+
+    public CopasGameState(String[] playerNames) {
+        if (playerNames == null || playerNames.length < 2) {
+            throw new IllegalArgumentException("At least two players are required.");
+        }
+
+        this.playerNames = playerNames.clone();
+        this.playerCount = playerNames.length;
+        this.finishedPlayers = new boolean[playerCount];
         startRound();
     }
 
@@ -36,7 +53,7 @@ public class CopasGameState {
         humanHasDrawnThisTurn = false;
         currentPlayerIndex = HUMAN_PLAYER_INDEX;
 
-        for (int playerIndex = 0; playerIndex < PLAYER_COUNT; playerIndex++) {
+        for (int playerIndex = 0; playerIndex < playerCount; playerIndex++) {
             finishedPlayers[playerIndex] = false;
             playerHands.add(drawPile.dealCards(STARTING_HAND_SIZE));
         }
@@ -48,11 +65,17 @@ public class CopasGameState {
 
         discardPile.add(openingCard);
         activeSuit = openingCard.getType();
-        statusMessage = "Your turn. Top card: " + openingCard.getDisplayName() + ". Active suit: " + activeSuit + ".";
+        statusMessage = getPlayerName(HUMAN_PLAYER_INDEX) + " turn. Top card: "
+                + openingCard.getDisplayName() + ". Active suit: " + activeSuit + ".";
     }
 
     public List<Card> getHumanHand() {
-        return List.copyOf(playerHands.get(HUMAN_PLAYER_INDEX));
+        return getPlayerHand(HUMAN_PLAYER_INDEX);
+    }
+
+    public List<Card> getPlayerHand(int playerIndex) {
+        validatePlayerIndex(playerIndex);
+        return List.copyOf(playerHands.get(playerIndex));
     }
 
     public Card getTopCard() {
@@ -71,25 +94,52 @@ public class CopasGameState {
         return drawPile.size();
     }
 
+    public int getPlayerCount() {
+        return playerCount;
+    }
+
     public boolean isHumanTurn() {
-        return !roundOver && currentPlayerIndex == HUMAN_PLAYER_INDEX && !finishedPlayers[HUMAN_PLAYER_INDEX];
+        return isPlayerTurn(HUMAN_PLAYER_INDEX);
     }
 
     public boolean isAiTurn() {
         return !roundOver && currentPlayerIndex != HUMAN_PLAYER_INDEX;
     }
 
+    public boolean isPlayerTurn(int playerIndex) {
+        validatePlayerIndex(playerIndex);
+        return !roundOver && currentPlayerIndex == playerIndex && !finishedPlayers[playerIndex];
+    }
+
     public boolean isHumanCardPlayable(int handIndex) {
-        List<Card> humanHand = playerHands.get(HUMAN_PLAYER_INDEX);
-        if (handIndex < 0 || handIndex >= humanHand.size()) {
+        return isPlayerCardPlayable(HUMAN_PLAYER_INDEX, handIndex);
+    }
+
+    public boolean isPlayerCardPlayable(int playerIndex, int handIndex) {
+        validatePlayerIndex(playerIndex);
+        List<Card> hand = playerHands.get(playerIndex);
+        if (handIndex < 0 || handIndex >= hand.size()) {
             return false;
         }
 
-        return canPlay(humanHand.get(handIndex));
+        return canPlay(hand.get(handIndex));
     }
 
     public boolean canHumanDraw() {
-        return isHumanTurn() && !humanHasDrawnThisTurn && !hasPlayableCard() && canDrawFromPile();
+        return canPlayerDraw(HUMAN_PLAYER_INDEX);
+    }
+
+    public boolean canPlayerDraw(int playerIndex) {
+        validatePlayerIndex(playerIndex);
+        if (!isPlayerTurn(playerIndex) || !canDrawFromPile()) {
+            return false;
+        }
+
+        if (playerIndex == HUMAN_PLAYER_INDEX) {
+            return !humanHasDrawnThisTurn && !hasPlayableCard(playerIndex);
+        }
+
+        return !hasPlayableCard(playerIndex);
     }
 
     public boolean isRoundOver() {
@@ -105,70 +155,99 @@ public class CopasGameState {
     }
 
     public int getPlayerCardCount(int playerIndex) {
+        validatePlayerIndex(playerIndex);
         return playerHands.get(playerIndex).size();
     }
 
     public String getPlayerName(int playerIndex) {
-        return PLAYER_NAMES[playerIndex];
+        validatePlayerIndex(playerIndex);
+        return playerNames[playerIndex];
     }
 
     public boolean isPlayerFinished(int playerIndex) {
+        validatePlayerIndex(playerIndex);
         return finishedPlayers[playerIndex];
     }
 
     public boolean playHumanCard(int handIndex, String chosenSuit) {
-        if (!isHumanTurn()) {
-            statusMessage = roundOver ? statusMessage : "Wait for your turn.";
-            return false;
+        return playCardForPlayer(HUMAN_PLAYER_INDEX, handIndex, chosenSuit).success();
+    }
+
+    public PlayerActionResult playCardForPlayer(int playerIndex, int handIndex, String chosenSuit) {
+        validatePlayerIndex(playerIndex);
+        if (!isPlayerTurn(playerIndex)) {
+            String message = roundOver ? statusMessage : "Wait for your turn.";
+            statusMessage = message;
+            return new PlayerActionResult(false, null, message);
         }
 
-        List<Card> humanHand = playerHands.get(HUMAN_PLAYER_INDEX);
-        if (handIndex < 0 || handIndex >= humanHand.size()) {
+        List<Card> hand = playerHands.get(playerIndex);
+        if (handIndex < 0 || handIndex >= hand.size()) {
             statusMessage = "That card is no longer available.";
-            return false;
+            return new PlayerActionResult(false, null, statusMessage);
         }
 
-        Card card = humanHand.get(handIndex);
+        Card card = hand.get(handIndex);
         if (!canPlay(card)) {
             statusMessage = "You can only play a card with the same number or the active suit (" + activeSuit + ").";
-            return false;
+            return new PlayerActionResult(false, null, statusMessage);
         }
 
-        playCard(HUMAN_PLAYER_INDEX, handIndex, normalizeChosenSuit(card, chosenSuit));
-        // AI turns are now driven by GamePanel with animation delays — no runAiTurns() here
-        return true;
+        PlayedCardResult result = playCard(playerIndex, handIndex, normalizeChosenSuit(card, chosenSuit));
+        return new PlayerActionResult(
+                true,
+                new ActionEvent(ActionType.PLAY_CARD, playerIndex, result.card(), result.affectedPlayerIndex(), result.affectedCardCount()),
+                null
+        );
     }
 
     public void drawForHuman() {
-        if (!isHumanTurn()) {
-            statusMessage = roundOver ? statusMessage : "Wait for your turn before drawing.";
-            return;
+        drawForPlayer(HUMAN_PLAYER_INDEX);
+    }
+
+    public PlayerActionResult drawForPlayer(int playerIndex) {
+        validatePlayerIndex(playerIndex);
+        if (!isPlayerTurn(playerIndex)) {
+            String message = roundOver ? statusMessage : "Wait for your turn before drawing.";
+            statusMessage = message;
+            return new PlayerActionResult(false, null, message);
         }
-        if (humanHasDrawnThisTurn) {
+        if (playerIndex == HUMAN_PLAYER_INDEX && humanHasDrawnThisTurn) {
             statusMessage = "You already drew this turn. Play a valid card if you can.";
-            return;
+            return new PlayerActionResult(false, null, statusMessage);
         }
-        if (hasPlayableCard()) {
+        if (hasPlayableCard(playerIndex)) {
             statusMessage = "You already have a playable card. Play it instead of drawing.";
-            return;
+            return new PlayerActionResult(false, null, statusMessage);
         }
 
         Card drawnCard = drawFromPile();
         if (drawnCard == null) {
             statusMessage = "No cards left to draw.";
-            return;
+            return new PlayerActionResult(false, null, statusMessage);
         }
 
-        playerHands.get(HUMAN_PLAYER_INDEX).add(drawnCard);
-        humanHasDrawnThisTurn = true;
+        playerHands.get(playerIndex).add(drawnCard);
+        if (playerIndex == HUMAN_PLAYER_INDEX) {
+            humanHasDrawnThisTurn = true;
+        }
 
         if (canPlay(drawnCard)) {
-            statusMessage = "You drew " + drawnCard.getDisplayName() + ". You may play it or another valid card.";
+            statusMessage = getPlayerName(playerIndex) + " drew " + drawnCard.getDisplayName()
+                    + " and may play it or another valid card.";
         } else {
-            statusMessage = "You drew " + drawnCard.getDisplayName() + " and it cannot be played. Turn passes.";
-            currentPlayerIndex = getNextActivePlayer(HUMAN_PLAYER_INDEX);
-            // GamePanel will detect isAiTurn() and schedule the animated AI turn
+            statusMessage = getPlayerName(playerIndex) + " drew " + drawnCard.getDisplayName() + " and passed.";
+            currentPlayerIndex = getNextActivePlayer(playerIndex);
+            if (!roundOver && currentPlayerIndex == HUMAN_PLAYER_INDEX) {
+                humanHasDrawnThisTurn = false;
+            }
         }
+
+        return new PlayerActionResult(
+                true,
+                new ActionEvent(ActionType.DRAW_CARD, playerIndex, drawnCard, playerIndex, 1),
+                null
+        );
     }
 
     /** Executes exactly one AI player's turn and returns what happened. GamePanel calls this
@@ -215,7 +294,7 @@ public class CopasGameState {
         return new AiTurnResult(aiIndex, cardPlayed, roundOver);
     }
 
-    private void playCard(int playerIndex, int handIndex, String chosenSuit) {
+    private PlayedCardResult playCard(int playerIndex, int handIndex, String chosenSuit) {
         List<Card> hand = playerHands.get(playerIndex);
         Card card = hand.remove(handIndex);
         discardPile.add(card);
@@ -234,17 +313,19 @@ public class CopasGameState {
             markPlayerFinished(playerIndex, actionMessage);
         }
 
-        applyCardEffect(playerIndex, card, actionMessage);
+        CardEffectResult effect = applyCardEffect(playerIndex, card, actionMessage);
 
         if (!roundOver) {
             statusMessage = actionMessage.append('.').toString();
         }
+
+        return new PlayedCardResult(card, effect.affectedPlayerIndex(), effect.affectedCardCount());
     }
 
-    private void applyCardEffect(int playerIndex, Card card, StringBuilder actionMessage) {
+    private CardEffectResult applyCardEffect(int playerIndex, Card card, StringBuilder actionMessage) {
         if (remainingPlayers() <= 1) {
             finishRound();
-            return;
+            return new CardEffectResult(-1, 0);
         }
 
         if (card.isGoldenOne()) {
@@ -252,7 +333,7 @@ public class CopasGameState {
             int drawn = drawCardsForPlayer(targetPlayer, 5);
             actionMessage.append(". ").append(getPlayerName(targetPlayer)).append(" draws ").append(drawn).append(" cards and is skipped");
             currentPlayerIndex = getNextActivePlayer(targetPlayer);
-            return;
+            return new CardEffectResult(targetPlayer, drawn);
         }
 
         if (card.isDrawTwo()) {
@@ -260,17 +341,18 @@ public class CopasGameState {
             int drawn = drawCardsForPlayer(targetPlayer, 2);
             actionMessage.append(". ").append(getPlayerName(targetPlayer)).append(" draws ").append(drawn).append(" cards and is skipped");
             currentPlayerIndex = getNextActivePlayer(targetPlayer);
-            return;
+            return new CardEffectResult(targetPlayer, drawn);
         }
 
         if (card.isSkip()) {
             int skippedPlayer = getNextActivePlayer(playerIndex);
             actionMessage.append(". ").append(getPlayerName(skippedPlayer)).append(" is skipped");
             currentPlayerIndex = getNextActivePlayer(skippedPlayer);
-            return;
+            return new CardEffectResult(skippedPlayer, 0);
         }
 
         currentPlayerIndex = getNextActivePlayer(playerIndex);
+        return new CardEffectResult(-1, 0);
     }
 
     private void markPlayerFinished(int playerIndex, StringBuilder actionMessage) {
@@ -286,7 +368,7 @@ public class CopasGameState {
         roundOver = true;
         int loserIndex = -1;
 
-        for (int playerIndex = 0; playerIndex < PLAYER_COUNT; playerIndex++) {
+        for (int playerIndex = 0; playerIndex < playerCount; playerIndex++) {
             if (!finishedPlayers[playerIndex]) {
                 loserIndex = playerIndex;
                 break;
@@ -348,8 +430,8 @@ public class CopasGameState {
         return card.matches(getTopCard(), activeSuit);
     }
 
-    private boolean hasPlayableCard() {
-        return playerHands.get(HUMAN_PLAYER_INDEX).stream().anyMatch(this::canPlay);
+    private boolean hasPlayableCard(int playerIndex) {
+        return playerHands.get(playerIndex).stream().anyMatch(this::canPlay);
     }
 
     private int findPlayableCardIndex(List<Card> hand) {
@@ -364,7 +446,7 @@ public class CopasGameState {
     private int getNextActivePlayer(int fromPlayerIndex) {
         int nextPlayerIndex = fromPlayerIndex;
         do {
-            nextPlayerIndex = (nextPlayerIndex + 1) % PLAYER_COUNT;
+            nextPlayerIndex = (nextPlayerIndex + 1) % playerCount;
         } while (finishedPlayers[nextPlayerIndex]);
         return nextPlayerIndex;
     }
@@ -406,4 +488,13 @@ public class CopasGameState {
 
         return card.getType();
     }
+
+    private void validatePlayerIndex(int playerIndex) {
+        if (playerIndex < 0 || playerIndex >= playerCount) {
+            throw new IllegalArgumentException("Unknown player index: " + playerIndex);
+        }
+    }
+
+    private record CardEffectResult(int affectedPlayerIndex, int affectedCardCount) {}
+    private record PlayedCardResult(Card card, int affectedPlayerIndex, int affectedCardCount) {}
 }
