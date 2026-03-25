@@ -1,4 +1,5 @@
 import main.GamePanel;
+import main.MainMenuPanel;
 import main.UiFonts;
 
 import javax.swing.*;
@@ -14,14 +15,20 @@ void main() {
     window.setResizable(false);
     window.setTitle("Carta");
 
-    GamePanel gamePanel = new GamePanel();
-    window.add(gamePanel);
+    MainMenuPanel mainMenuPanel = new MainMenuPanel(() -> launchCpuGame(window));
+    window.setContentPane(mainMenuPanel);
 
     window.pack();
 
     window.setLocationRelativeTo(null);
     window.setVisible(true);
+}
 
+void launchCpuGame(JFrame window) {
+    GamePanel gamePanel = new GamePanel();
+    window.setContentPane(gamePanel);
+    window.revalidate();
+    window.repaint();
     gamePanel.startGameThread();
 }
 
