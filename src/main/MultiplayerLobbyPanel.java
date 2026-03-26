@@ -22,7 +22,11 @@ import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
+/**
+ * Waiting-room screen shown before multiplayer game start.
+ */
 public class MultiplayerLobbyPanel extends JPanel {
+    /** Host/client callbacks for start and back actions. */
     public interface Listener {
         void onStartRequested();
 
@@ -42,11 +46,12 @@ public class MultiplayerLobbyPanel extends JPanel {
     private static final int SCREEN_WIDTH = (TILE_SIZE * 16) / 2;
     private static final int SCREEN_HEIGHT = (TILE_SIZE * 12) / 2;
 
-    private final DefaultListModel<String> playersModel = new DefaultListModel<>();
+    private final DefaultListModel<String> playersModel = new DefaultListModel<>(); // rendered rows in lobby player list
     private final JLabel subtitleLabel = new JLabel("Waiting for players...", SwingConstants.CENTER);
     private final JLabel connectionLabel = new JLabel("", SwingConstants.CENTER);
     private final JButton startButton;
 
+    /** Creates a lobby panel for either host controls or read-only joiner view. */
     public MultiplayerLobbyPanel(String title, boolean hostControls, Listener listener) {
         setPreferredSize(new Dimension(SCREEN_WIDTH, SCREEN_HEIGHT));
         setBackground(PANEL_BACKGROUND);
@@ -123,10 +128,12 @@ public class MultiplayerLobbyPanel extends JPanel {
         add(content);
     }
 
+    /** Sets the connection helper label (LAN IP/port hints). */
     public void setConnectionLabel(String text) {
         connectionLabel.setText(text == null ? "" : text);
     }
 
+    /** Applies latest lobby state into labels/list/buttons. */
     public void updateLobby(LobbyStateMessage lobbyState) {
         subtitleLabel.setText(lobbyState.statusText());
         startButton.setEnabled(lobbyState.canStart());
@@ -138,6 +145,7 @@ public class MultiplayerLobbyPanel extends JPanel {
         }
     }
 
+    /** Creates a styled button used for start/back actions. */
     private JButton buildMenuButton(String text) {
         JButton button = new JButton(text);
         button.setFont(UiFonts.bold(18f));

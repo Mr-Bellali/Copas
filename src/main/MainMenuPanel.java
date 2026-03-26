@@ -16,6 +16,9 @@ import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
+/**
+ * Main entry menu with game mode selection.
+ */
 public class MainMenuPanel extends JPanel {
     private static final Color BUTTON_BACKGROUND = new Color(244, 222, 133);
     private static final Color BUTTON_HOVER_BACKGROUND = new Color(252, 233, 154);
@@ -28,6 +31,7 @@ public class MainMenuPanel extends JPanel {
     private static final int SCREEN_WIDTH = (TILE_SIZE * 16) / 2;
     private static final int SCREEN_HEIGHT = (TILE_SIZE * 12) / 2;
 
+    /** Builds menu and wires callbacks for selected mode. */
     public MainMenuPanel(Runnable onPlayAgainstCpu, Runnable onLocalMultiplayer) {
         setPreferredSize(new Dimension(SCREEN_WIDTH, SCREEN_HEIGHT));
         setBackground(new Color(16, 94, 58));
@@ -76,6 +80,7 @@ public class MainMenuPanel extends JPanel {
         add(content, gbc);
     }
 
+    /** Creates a styled menu button with hover feedback. */
     private JButton buildMenuButton(String text) {
         JButton button = new JButton(text);
         button.setFont(UiFonts.bold(18f));
@@ -110,5 +115,3 @@ public class MainMenuPanel extends JPanel {
         return button;
     }
 }
-
-

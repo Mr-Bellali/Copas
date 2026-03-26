@@ -3,15 +3,23 @@ package main;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
+/**
+ * Basic WASD key state tracker.
+ *
+ * This class currently is not used by the card flow, but it keeps directional
+ * pressed/released states that can be reused for movement-based screens.
+ */
 public class KeyHandler implements KeyListener {
 
-    public boolean upPressed, downPressed, leftPressed, rightPressed;
+    public boolean upPressed, downPressed, leftPressed, rightPressed; // live key states read by update loops
 
+    /** Not used; included to satisfy KeyListener. */
     @Override
     public void keyTyped(KeyEvent e) {
 
     }
 
+    /** Marks WASD flags as pressed when key down events arrive. */
     @Override
     public void keyPressed(KeyEvent e) {
         int code = e.getKeyCode();
@@ -30,6 +38,7 @@ public class KeyHandler implements KeyListener {
         }
     }
 
+    /** Clears WASD flags on key release events. */
     @Override
     public void keyReleased(KeyEvent e) {
         int code = e.getKeyCode();

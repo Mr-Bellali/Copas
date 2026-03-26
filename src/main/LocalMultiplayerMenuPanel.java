@@ -17,7 +17,11 @@ import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
+/**
+ * Setup screen for local/LAN multiplayer host/join parameters.
+ */
 public class LocalMultiplayerMenuPanel extends JPanel {
+    /** Navigation and action callbacks for this screen. */
     public interface Listener {
         void onHostRequested(String playerName, String portText);
 
@@ -39,6 +43,7 @@ public class LocalMultiplayerMenuPanel extends JPanel {
     private static final int SCREEN_WIDTH = (TILE_SIZE * 16) / 2;
     private static final int SCREEN_HEIGHT = (TILE_SIZE * 12) / 2;
 
+    /** Builds form controls and wires host/join actions. */
     public LocalMultiplayerMenuPanel(Listener listener) {
         setPreferredSize(new Dimension(SCREEN_WIDTH, SCREEN_HEIGHT));
         setBackground(PANEL_BACKGROUND);
@@ -127,6 +132,7 @@ public class LocalMultiplayerMenuPanel extends JPanel {
         add(content);
     }
 
+    /** Creates a styled text field used by host/join form inputs. */
     private JTextField buildTextField(String defaultValue) {
         JTextField field = new JTextField(defaultValue);
         field.setFont(UiFonts.plain(16f));
@@ -140,6 +146,7 @@ public class LocalMultiplayerMenuPanel extends JPanel {
         return field;
     }
 
+    /** Creates a styled menu button with hover feedback. */
     private JButton buildMenuButton(String text) {
         JButton button = new JButton(text);
         button.setFont(UiFonts.bold(18f));
@@ -174,4 +181,3 @@ public class LocalMultiplayerMenuPanel extends JPanel {
         return button;
     }
 }
-

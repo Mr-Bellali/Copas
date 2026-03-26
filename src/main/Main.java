@@ -21,6 +21,7 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Enumeration;
 
+/** Entry point: initializes frame/theme and routes to main menu. */
 void main() {
     applyGlobalUiFont(UiFonts.plain(14f));
 
@@ -36,6 +37,7 @@ void main() {
     window.setVisible(true);
 }
 
+/** Shows initial mode selection screen. */
 void showMainMenu(JFrame window) {
     MainMenuPanel mainMenuPanel = new MainMenuPanel(
             () -> launchCpuGame(window),
@@ -44,6 +46,7 @@ void showMainMenu(JFrame window) {
     setWindowContent(window, mainMenuPanel);
 }
 
+/** Shows multiplayer setup form (name, host, port). */
 void showLocalMultiplayerMenu(JFrame window) {
     LocalMultiplayerMenuPanel multiplayerMenuPanel = new LocalMultiplayerMenuPanel(new LocalMultiplayerMenuPanel.Listener() {
         @Override
@@ -78,8 +81,9 @@ void showLocalMultiplayerMenu(JFrame window) {
     setWindowContent(window, multiplayerMenuPanel);
 }
 
+/** Creates host lobby, starts server, and waits for remote player handshake. */
 void showHostLobby(JFrame window, String playerName, int port) {
-    final LocalMultiplayerHost[] hostHolder = new LocalMultiplayerHost[1];
+    final LocalMultiplayerHost[] hostHolder = new LocalMultiplayerHost[1]; // array wrapper allows updates inside anonymous callbacks
     MultiplayerLobbyPanel lobbyPanel = new MultiplayerLobbyPanel("Host lobby", true, new MultiplayerLobbyPanel.Listener() {
         @Override
         public void onStartRequested() {
@@ -137,6 +141,7 @@ void showHostLobby(JFrame window, String playerName, int port) {
     }
 }
 
+/** Builds a safe fallback lobby list when host loses remote player before game start. */
 java.util.List<main.LocalMultiplayerProtocol.LobbyPlayerInfo> lobbyPanelStateFallback(String playerName) {
     return java.util.List.of(
             new main.LocalMultiplayerProtocol.LobbyPlayerInfo(playerName == null || playerName.isBlank() ? "Host" : playerName.trim(), true, true),
@@ -144,6 +149,7 @@ java.util.List<main.LocalMultiplayerProtocol.LobbyPlayerInfo> lobbyPanelStateFal
     );
 }
 
+/** Connects to host and displays joiner waiting room until host starts game. */
 void showJoinLobby(JFrame window, String playerName, String hostAddress, int port) {
     final LocalMultiplayerClient[] clientHolder = new LocalMultiplayerClient[1];
     MultiplayerLobbyPanel lobbyPanel = new MultiplayerLobbyPanel("Join lobby", false, new MultiplayerLobbyPanel.Listener() {
@@ -200,6 +206,7 @@ void showJoinLobby(JFrame window, String playerName, String hostAddress, int por
     }
 }
 
+/** Parses and validates port text. Returns null for invalid input. */
 Integer parsePortOrNull(String portText) {
     try {
         int port = Integer.parseInt(portText == null ? "" : portText.trim());
@@ -209,6 +216,11 @@ Integer parsePortOrNull(String portText) {
     }
 }
 
+/**
+ * Parses join target from either:
+ * - host + explicit port field, or
+ * - host:port in host field.
+ */
 InetSocketAddress parseJoinTarget(String hostAddressText, String portText) {
     String host = hostAddressText == null || hostAddressText.isBlank() ? "127.0.0.1" : hostAddressText.trim();
     Integer explicitPort = parsePortOrNull(portText);
@@ -228,23 +240,27 @@ InetSocketAddress parseJoinTarget(String hostAddressText, String portText) {
     return new InetSocketAddress(host, explicitPort);
 }
 
+/** Launches existing single-player CPU panel. */
 void launchCpuGame(JFrame window) {
     GamePanel gamePanel = new GamePanel();
     setWindowContent(window, gamePanel);
     gamePanel.startGameThread();
 }
 
+/** Launches multiplayer panel with a host/client controller backend. */
 void launchMultiplayerGame(JFrame window, MultiplayerGameController controller, MultiplayerGameSnapshot snapshot) {
     MultiplayerGamePanel gamePanel = new MultiplayerGamePanel(controller, snapshot);
     setWindowContent(window, gamePanel);
 }
 
+/** Replaces active frame panel and refreshes layout. */
 void setWindowContent(JFrame window, JPanel panel) {
     window.setContentPane(panel);
     window.revalidate();
     window.repaint();
 }
 
+/** Applies a global Swing UI font so dialogs and controls match in-game typography. */
 void applyGlobalUiFont(Font font) {
     FontUIResource fontResource = new FontUIResource(font);
     Enumeration<Object> keys = UIManager.getDefaults().keys();
