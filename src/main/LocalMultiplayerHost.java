@@ -22,10 +22,12 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class LocalMultiplayerHost implements MultiplayerGameController, Closeable {
@@ -84,6 +86,26 @@ public class LocalMultiplayerHost implements MultiplayerGameController, Closeabl
         } catch (IOException ignored) {
         }
         return hostAddress + ":" + port;
+    }
+
+    public List<String> getReachableAddressHints() {
+        List<String> hints = new ArrayList<>();
+        try {
+            for (NetworkInterface networkInterface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                if (!networkInterface.isUp() || networkInterface.isLoopback() || networkInterface.isVirtual()) {
+                    continue;
+                }
+                for (InetAddress address : Collections.list(networkInterface.getInetAddresses())) {
+                    String hostAddress = address.getHostAddress();
+                    if (address.isLoopbackAddress() || hostAddress.contains(":")) {
+                        continue;
+                    }
+                    hints.add(hostAddress + ":" + port);
+                }
+            }
+        } catch (SocketException ignored) {
+        }
+        return hints;
     }
 
     public synchronized void startGame() {

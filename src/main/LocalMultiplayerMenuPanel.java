@@ -19,9 +19,9 @@ import java.awt.event.MouseEvent;
 
 public class LocalMultiplayerMenuPanel extends JPanel {
     public interface Listener {
-        void onHostRequested(String playerName);
+        void onHostRequested(String playerName, String portText);
 
-        void onJoinRequested(String playerName, String hostAddress);
+        void onJoinRequested(String playerName, String hostAddress, String portText);
 
         void onBackRequested();
     }
@@ -60,11 +60,17 @@ public class LocalMultiplayerMenuPanel extends JPanel {
 
         JTextField hostAddressField = buildTextField("127.0.0.1");
 
+        JLabel portLabel = new JLabel("Port");
+        portLabel.setFont(UiFonts.plain(16f));
+        portLabel.setForeground(Color.WHITE);
+
+        JTextField portField = buildTextField(String.valueOf(LocalMultiplayerHost.DEFAULT_PORT));
+
         JButton hostButton = buildMenuButton("Host game");
-        hostButton.addActionListener(_ -> listener.onHostRequested(playerNameField.getText()));
+        hostButton.addActionListener(_ -> listener.onHostRequested(playerNameField.getText(), portField.getText()));
 
         JButton joinButton = buildMenuButton("Join game");
-        joinButton.addActionListener(_ -> listener.onJoinRequested(playerNameField.getText(), hostAddressField.getText()));
+        joinButton.addActionListener(_ -> listener.onJoinRequested(playerNameField.getText(), hostAddressField.getText(), portField.getText()));
 
         JButton backButton = buildMenuButton("Back");
         backButton.addActionListener(_ -> listener.onBackRequested());
@@ -100,13 +106,21 @@ public class LocalMultiplayerMenuPanel extends JPanel {
         content.add(hostAddressField, gbc);
 
         gbc.gridy = 5;
+        gbc.insets = new Insets(8, 0, 4, 0);
+        content.add(portLabel, gbc);
+
+        gbc.gridy = 6;
+        gbc.insets = new Insets(4, 0, 14, 0);
+        content.add(portField, gbc);
+
+        gbc.gridy = 7;
         gbc.insets = new Insets(8, 0, 8, 0);
         content.add(hostButton, gbc);
 
-        gbc.gridy = 6;
+        gbc.gridy = 8;
         content.add(joinButton, gbc);
 
-        gbc.gridy = 7;
+        gbc.gridy = 9;
         gbc.insets = new Insets(18, 0, 0, 0);
         content.add(backButton, gbc);
 

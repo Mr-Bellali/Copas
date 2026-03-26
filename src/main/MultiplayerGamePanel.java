@@ -21,6 +21,7 @@ import java.awt.Shape;
 import java.awt.Toolkit;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -59,6 +60,7 @@ public class MultiplayerGamePanel extends JPanel {
         setBackground(new Color(16, 94, 58));
         setDoubleBuffered(true);
         addMouseListener(new TableMouseHandler());
+        addMouseMotionListener(new TableMouseMotionHandler());
 
         controller.setListener(new MultiplayerGameController.Listener() {
             @Override
@@ -353,6 +355,28 @@ public class MultiplayerGamePanel extends JPanel {
         }
     }
 
+    private void updateCursor(Point point) {
+        if (snapshot == null || snapshot.roundOver() || !snapshot.localTurn() || !activeAnimations.isEmpty()) {
+            setCursor(java.awt.Cursor.getDefaultCursor());
+            return;
+        }
+
+        boolean onPlayableCard = false;
+        List<CardPlacement> placements = getPlayerHandPlacements(snapshot.localHand());
+        for (CardPlacement placement : placements) {
+            if (!placement.hitShape().contains(point)) {
+                continue;
+            }
+            onPlayableCard = snapshot.playableCardIndexes().contains(placement.handIndex());
+            break;
+        }
+
+        boolean onDrawPile = getDrawPileBounds().contains(point) && snapshot.canDraw();
+        setCursor((onPlayableCard || onDrawPile)
+                ? java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR)
+                : java.awt.Cursor.getDefaultCursor());
+    }
+
     private String requestSuitChoice() {
         Object selection = JOptionPane.showInputDialog(
                 this,
@@ -479,6 +503,13 @@ public class MultiplayerGamePanel extends JPanel {
         @Override
         public void mouseClicked(MouseEvent e) {
             handleMouseClick(e.getPoint());
+        }
+    }
+
+    private class TableMouseMotionHandler extends MouseMotionAdapter {
+        @Override
+        public void mouseMoved(MouseEvent e) {
+            updateCursor(e.getPoint());
         }
     }
 }

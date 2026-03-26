@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +48,7 @@ public class GamePanel extends JPanel implements Runnable {
         this.setDoubleBuffered(true);
         this.gameState = new CopasGameState();
         this.addMouseListener(new TableMouseHandler());
+        this.addMouseMotionListener(new TableMouseMotionHandler());
     }
 
     public void startGameThread() {
@@ -303,6 +305,25 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 
+    private void updateCursor(Point point) {
+        if (gameState.isRoundOver() || activeAnimation != null || aiTurnPending || !gameState.isHumanTurn()) {
+            setCursor(Cursor.getDefaultCursor());
+            return;
+        }
+
+        boolean onPlayableCard = false;
+        for (CardPlacement p : getPlayerHandPlacements()) {
+            if (!p.hitShape().contains(point)) continue;
+            onPlayableCard = gameState.isHumanCardPlayable(p.handIndex());
+            break;
+        }
+
+        boolean onDrawPile = getDrawPileBounds().contains(point) && gameState.canHumanDraw();
+        setCursor((onPlayableCard || onDrawPile)
+                ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                : Cursor.getDefaultCursor());
+    }
+
     private String requestSuitChoice() {
         Object sel = JOptionPane.showInputDialog(this, "Choose the next suit:", "Change Suit",
                 JOptionPane.PLAIN_MESSAGE, null, SUIT_OPTIONS, gameState.getActiveSuit());
@@ -350,5 +371,9 @@ public class GamePanel extends JPanel implements Runnable {
 
     private class TableMouseHandler extends MouseAdapter {
         @Override public void mouseClicked(MouseEvent e) { handleMouseClick(e.getPoint()); }
+    }
+
+    private class TableMouseMotionHandler extends MouseMotionAdapter {
+        @Override public void mouseMoved(MouseEvent e) { updateCursor(e.getPoint()); }
     }
 }

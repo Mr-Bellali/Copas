@@ -17,10 +17,12 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 
 public class LocalMultiplayerClient implements MultiplayerGameController, Closeable {
+    private static final int CONNECT_TIMEOUT_MS = 3500;
     public interface LobbyListener {
         void onLobbyUpdated(LobbyStateMessage lobbyState);
 
@@ -53,7 +55,8 @@ public class LocalMultiplayerClient implements MultiplayerGameController, Closea
     }
 
     public void connect() throws IOException {
-        socket = new Socket(hostAddress, port);
+        socket = new Socket();
+        socket.connect(new InetSocketAddress(hostAddress, port), CONNECT_TIMEOUT_MS);
         output = new ObjectOutputStream(socket.getOutputStream());
         output.flush();
         input = new ObjectInputStream(socket.getInputStream());

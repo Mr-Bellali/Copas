@@ -131,15 +131,7 @@ public class CopasGameState {
 
     public boolean canPlayerDraw(int playerIndex) {
         validatePlayerIndex(playerIndex);
-        if (!isPlayerTurn(playerIndex) || !canDrawFromPile()) {
-            return false;
-        }
-
-        if (playerIndex == HUMAN_PLAYER_INDEX) {
-            return !humanHasDrawnThisTurn && !hasPlayableCard(playerIndex);
-        }
-
-        return !hasPlayableCard(playerIndex);
+        return isPlayerTurn(playerIndex) && canDrawFromPile();
     }
 
     public boolean isRoundOver() {
@@ -212,14 +204,6 @@ public class CopasGameState {
             statusMessage = message;
             return new PlayerActionResult(false, null, message);
         }
-        if (playerIndex == HUMAN_PLAYER_INDEX && humanHasDrawnThisTurn) {
-            statusMessage = "You already drew this turn. Play a valid card if you can.";
-            return new PlayerActionResult(false, null, statusMessage);
-        }
-        if (hasPlayableCard(playerIndex)) {
-            statusMessage = "You already have a playable card. Play it instead of drawing.";
-            return new PlayerActionResult(false, null, statusMessage);
-        }
 
         Card drawnCard = drawFromPile();
         if (drawnCard == null) {
@@ -228,19 +212,10 @@ public class CopasGameState {
         }
 
         playerHands.get(playerIndex).add(drawnCard);
-        if (playerIndex == HUMAN_PLAYER_INDEX) {
-            humanHasDrawnThisTurn = true;
-        }
-
-        if (canPlay(drawnCard)) {
-            statusMessage = getPlayerName(playerIndex) + " drew " + drawnCard.getDisplayName()
-                    + " and may play it or another valid card.";
-        } else {
-            statusMessage = getPlayerName(playerIndex) + " drew " + drawnCard.getDisplayName() + " and passed.";
-            currentPlayerIndex = getNextActivePlayer(playerIndex);
-            if (!roundOver && currentPlayerIndex == HUMAN_PLAYER_INDEX) {
-                humanHasDrawnThisTurn = false;
-            }
+        statusMessage = getPlayerName(playerIndex) + " drew " + drawnCard.getDisplayName() + " and passed.";
+        currentPlayerIndex = getNextActivePlayer(playerIndex);
+        if (!roundOver && currentPlayerIndex == HUMAN_PLAYER_INDEX) {
+            humanHasDrawnThisTurn = false;
         }
 
         return new PlayerActionResult(
@@ -276,14 +251,8 @@ public class CopasGameState {
             Card drawnCard = drawFromPile();
             if (drawnCard != null) {
                 aiHand.add(drawnCard);
-                if (canPlay(drawnCard)) {
-                    String chosenSuit = drawnCard.isSuitChange() ? chooseSuitForAi(aiHand, aiHand.size() - 1) : null;
-                    cardPlayed = drawnCard;
-                    playCard(aiIndex, aiHand.size() - 1, chosenSuit);
-                } else {
-                    statusMessage = getPlayerName(aiIndex) + " drew a card and passed.";
-                    currentPlayerIndex = getNextActivePlayer(aiIndex);
-                }
+                statusMessage = getPlayerName(aiIndex) + " drew a card and passed.";
+                currentPlayerIndex = getNextActivePlayer(aiIndex);
             } else {
                 statusMessage = getPlayerName(aiIndex) + " could not draw.";
                 currentPlayerIndex = getNextActivePlayer(aiIndex);

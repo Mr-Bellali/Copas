@@ -8,6 +8,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class LocalMultiplayerSmokeTest {
+    private static final int TEST_PORT = 34667;
+
     public static void main(String[] args) throws Exception {
         CountDownLatch hostLobbyReady = new CountDownLatch(1);
         CountDownLatch clientLobbyReady = new CountDownLatch(1);
@@ -17,7 +19,7 @@ public class LocalMultiplayerSmokeTest {
 
         AtomicReference<MultiplayerGameSnapshot> hostSnapshotRef = new AtomicReference<>();
 
-        LocalMultiplayerHost host = new LocalMultiplayerHost("Host", LocalMultiplayerHost.DEFAULT_PORT, new LocalMultiplayerHost.LobbyListener() {
+        LocalMultiplayerHost host = new LocalMultiplayerHost("Host", TEST_PORT, new LocalMultiplayerHost.LobbyListener() {
             @Override
             public void onLobbyUpdated(LobbyStateMessage lobbyState) {
                 if (lobbyState.canStart()) {
@@ -42,7 +44,7 @@ public class LocalMultiplayerSmokeTest {
         });
         host.start();
 
-        LocalMultiplayerClient client = new LocalMultiplayerClient("Client", "127.0.0.1", LocalMultiplayerHost.DEFAULT_PORT, new LocalMultiplayerClient.LobbyListener() {
+        LocalMultiplayerClient client = new LocalMultiplayerClient("Client", "127.0.0.1", TEST_PORT, new LocalMultiplayerClient.LobbyListener() {
             @Override
             public void onLobbyUpdated(LobbyStateMessage lobbyState) {
                 if (lobbyState.players().size() == 2 && lobbyState.players().get(1).connected()) {
